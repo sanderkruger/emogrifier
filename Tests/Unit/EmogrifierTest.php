@@ -1861,4 +1861,57 @@ class EmogrifierTest extends \PHPUnit_Framework_TestCase
             $this->subject->emogrify()
         );
     }
+
+    /**
+     * Data provider for css to html mapping.
+     *
+     * @return array[]
+     */
+    public function cssToHtmlMappingDataProvider()
+    {
+        return [
+            'Map bakground-color to bgcolor'
+                => ['', 'body {background-color: red;}', 'body', 'bgcolor="red"'],
+            'Do not map background url'
+                => ['', 'body {background: url(bg.png) top;}', 'body', 'style'],
+            'Map background to bgcolor'
+                => ['', 'body {background: red top;}', 'body', 'bgcolor="red"'],
+            'Map width and height'
+                => ['', 'body {width: 100%; height: 200px;}', 'body', 'width="100%" height="200"'],
+            'Map text-align:center to align=center'
+                => ['<p>mid</p>', 'p {text-align: center;}', 'p', 'align="center"'],
+            'Do not map text-align: inherit'
+                => ['<p>plain</p>', 'p {text-align: interit;}', 'p', 'style'],
+            'Map margin: 0 auto to align=center'
+                => ['<img>', 'img {margin: 0 auto;}', 'img', 'align="center"'],
+            'Map float: right to aling=right'
+                => ['<img>', 'img {float: right;}', 'img', 'align="right"'],
+            'Map border: none to border=0'
+                => ['<img>', 'img {border: none;}', 'img', 'border="0"'],
+            'Map border-spacing: 0 to cellspacing=0'
+                => ['<table><tr><td></td></tr></table>', 'table {border-spacing: 0;}', 'table', 'cellspacing="0"']
+        ];
+    }
+    
+    /**
+     * @test
+     * @param string $body          The HTML
+     * @param string $css           The complete CSS
+     * @param string $tagName       The name of the tag that should be modified
+     * @param string $attributes    The attributes that are expected on the element
+     *
+     * @dataProvider cssToHtmlMappingDataProvider
+     */
+    public function emogrifierMapsCssToHtml($body, $css, $tagName, $attributes)
+    {
+        $this->subject->setHtml($this->html5DocumentType . '<html><body>' . $body . '</body></html>');
+        $this->subject->setCss($css);
+        $this->subject->enableCssToHtmlMapping();
+        $html = $this->subject->emogrify();
+
+        self::assertContains(
+            '<' . $tagName . ' ' . $attributes,
+            $html
+        );
+    }
 }
