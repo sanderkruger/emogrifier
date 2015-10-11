@@ -1844,163 +1844,73 @@ class EmogrifierTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function mapBackgroundColor2BgColor()
+    public function dataUrisAreConserved()
     {
-        $css = 'body {background-color: red;}';
-        $this->subject->setHtml($this->html5DocumentType . '<html><body></body></html>');
-        $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
-        $html = $this->subject->emogrify();
+        $html = $this->html5DocumentType . '<html></html>';
+        $this->subject->setHtml($html);
+        $styleRule = 'background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAABUk' .
+            'lEQVQ4y81UsY6CQBCdWXBjYWFMjEgAE0piY8c38B9+iX+ksaHCgs5YWEhIrJCQYGJBomiC7lzhVcfqEa+5KXfey3s783bRdd00TR' .
+            'VFAQAAICJEhN/q8Xjoug7D4RA+qsFgwDjn9QYiTiaT+Xx+OByOx+NqtapjWq0WjEajekPTtCAIiIiIyrKMoqiOMQxDlVqyLMt1XQ' .
+            'A4nU6z2Wy9XkthEnK/3zdN8znC/X7v+36WZfJ7120vFos4joUQRHS5XDabzXK5bGrbtu1er/dtTFU1TWu3202VHceZTqe3242Itt' .
+            'ut53nj8bip8m6345wLIQCgKIowDIuikAoz6Wm3233mjHPe6XRe5UROJqImIWPwh/pvZMbYM2GKorx5oUw6m+v1miTJ+XzO8/x+v7' .
+            '+UtizrM8+GYahVVSFik9/jxy6rqlJN02SM1cmI+GbbQghd178AAO2FXws6LwMAAAAASUVORK5CYII=);';
+        $this->subject->setCss('html {' . $styleRule . '}');
 
         self::assertContains(
-            '<body bgcolor="red" style="background-color: red;">',
-            $html
+            '<html style="' . $styleRule . '">',
+            $this->subject->emogrify()
         );
     }
 
     /**
-     * @test
+     * Data provider for css to html mapping.
+     *
+     * @return array[]
      */
-    public function mapBackgroundNot2BgColor()
+    public function cssToHtmlMappingDataProvider()
     {
-        $css = 'body {background: url(bg.png) top;}';
-        $this->subject->setHtml($this->html5DocumentType . '<html><body></body></html>');
-        $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
-        $html = $this->subject->emogrify();
-
-        self::assertContains(
-            '<body style="background: url(bg.png) top;">',
-            $html
-        );
+        return [
+            'Map bakground-color to bgcolor'
+                => ['', 'body {background-color: red;}', 'body', 'bgcolor="red"'],
+            'Do not map background url'
+                => ['', 'body {background: url(bg.png) top;}', 'body', 'style'],
+            'Map background to bgcolor'
+                => ['', 'body {background: red top;}', 'body', 'bgcolor="red"'],
+            'Map width and height'
+                => ['', 'body {width: 100%; height: 200px;}', 'body', 'width="100%" height="200"'],
+            'Map text-align:center to align=center'
+                => ['<p>mid</p>', 'p {text-align: center;}', 'p', 'align="center"'],
+            'Do not map text-align: inherit'
+                => ['<p>plain</p>', 'p {text-align: interit;}', 'p', 'style'],
+            'Map margin: 0 auto to align=center'
+                => ['<img>', 'img {margin: 0 auto;}', 'img', 'align="center"'],
+            'Map float: right to aling=right'
+                => ['<img>', 'img {float: right;}', 'img', 'align="right"'],
+            'Map border: none to border=0'
+                => ['<img>', 'img {border: none;}', 'img', 'border="0"'],
+            'Map border-spacing: 0 to cellspacing=0'
+                => ['<table><tr><td></td></tr></table>', 'table {border-spacing: 0;}', 'table', 'cellspacing="0"']
+        ];
     }
-
+    
     /**
      * @test
+     * @param string $body          The HTML
+     * @param string $css           The complete CSS
+     * @param string $tagName       The name of the tag that should be modified
+     * @param string $attributes    The attributes that are expected on the element
+     *
+     * @dataProvider cssToHtmlMappingDataProvider
      */
-    public function mapBackground2BgColor()
+    public function emogrifierMapsCssToHtml($body, $css, $tagName, $attributes)
     {
-        $css = 'body {background: red top;}';
-        $this->subject->setHtml($this->html5DocumentType . '<html><body></body></html>');
+        $this->subject->setHtml($this->html5DocumentType . '<html><body>' . $body . '</body></html>');
         $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
+        $this->subject->enableCssToHtmlMapping();
         $html = $this->subject->emogrify();
 
         self::assertContains(
-            '<body bgcolor="red" style="background: red top;">',
-            $html
-        );
-    }
-
-    /**
-     * @test
-     */
-    public function mapWidthHeight2WidthHeight()
-    {
-        $css = 'body {width: 100%; height: 200px;}';
-        $this->subject->setHtml($this->html5DocumentType . '<html><body></body></html>');
-        $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
-        $html = $this->subject->emogrify();
-
-        self::assertContains(
-            '<body width="100%" height="200" style="width: 100%; height: 200px;">',
-            $html
-        );
-    }
-
-    /**
-     * @test
-     */
-    public function mapMarginAuto2AlignCenter()
-    {
-        $css = '.logo {margin: 0 auto;}';
-        $this->subject->setHtml($this->html5DocumentType .
-                '<html><body><img src="logo.png" class="logo"></body></html>');
-        $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
-        $html = $this->subject->emogrify();
-
-        self::assertContains(
-            '<img src="logo.png" class="logo" align="center" style="margin: 0 auto;">',
-            $html
-        );
-    }
-
-    /**
-     * @test
-     */
-    public function mapTextAlign2Align()
-    {
-        $css = '.mid {text-align: center;} .plain {text-align: interit;}';
-        $this->subject->setHtml($this->html5DocumentType . '<html><body>' .
-                '<p class="mid">mid</p>' .
-                '<p class="plain">plain</p>' .
-                '</body></html>');
-        $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
-        $html = $this->subject->emogrify();
-
-        self::assertContains(
-            '<p class="mid" align="center" style="text-align: center;">mid</p>',
-            $html
-        );
-        self::assertContains(
-            '<p class="plain" style="text-align: interit;">plain</p>',
-            $html
-        );
-    }
-
-    /**
-     * @test
-     */
-    public function mapFloatRight2AlignCenter()
-    {
-        $css = '.logo {float: right;}';
-        $this->subject->setHtml($this->html5DocumentType .
-                '<html><body><img src="logo.png" class="logo"></body></html>');
-        $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
-        $html = $this->subject->emogrify();
-
-        self::assertContains(
-            '<img src="logo.png" class="logo" align="right" style="float: right;">',
-            $html
-        );
-    }
-
-    /**
-     * @test
-     */
-    public function mapBorder2Border()
-    {
-        $css = '.logo {border: none;}';
-        $this->subject->setHtml($this->html5DocumentType .
-                '<html><body><img src="logo.png" class="logo"></body></html>');
-        $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
-        $html = $this->subject->emogrify();
-
-        self::assertContains(
-            '<img src="logo.png" class="logo" border="0" style="border: none;">',
-            $html
-        );
-    }
-
-    /**
-     * @test
-     */
-    public function mapBorderSpacing2CellSpacing()
-    {
-        $css = '.items {border-spacing: 0;}';
-        $this->subject->setHtml($this->html5DocumentType .
-                '<html><body><table class="items"><tr><td></td></tr></table></body></html>');
-        $this->subject->setCss($css);
-        $this->subject->enableCss2HtmlMapping();
-        $html = $this->subject->emogrify();
-
-        self::assertContains(
-            '<table class="items" cellspacing="0" style="border-spacing: 0;">',
+            '<' . $tagName . ' ' . $attributes,
             $html
         );
     }

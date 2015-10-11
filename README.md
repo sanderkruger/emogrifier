@@ -108,6 +108,12 @@ calling the `emogrify` method:
   CSS while the transformed content will have all the available HTML tags set.
 
 
+## Requirements
+
+* PHP from 5.4 to 7.0 (with the mbstring extension)
+* or HHVM
+
+
 ## Installing with Composer
 
 Download the [`composer.phar`](https://getcomposer.org/composer.phar) locally
@@ -191,7 +197,6 @@ The following selectors are not implemented yet:
   (but not all of them). It does not support pseudo selectors. (Emogrifier
   works by converting CSS selectors to XPath selectors, and pseudo selectors
   cannot be converted accurately).
-* `!important` currently is not supported yet.
 
 
 ## Maintainer
